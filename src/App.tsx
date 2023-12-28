@@ -2,16 +2,12 @@ import { PropsWithChildren, useMemo } from 'react'
 
 import { IlluminatedLetterAssetId, useIlluminatedLetterImageAsset } from './assets.illuminatedLetters'
 import bibleVulgate from './bible.vulgate'
-import { keys, pickRandom, shuffle } from './utils'
+import { abs, keys, pickRandom, shuffle } from './utils'
 
-function Word({ className, children }: PropsWithChildren<{ className?: string }>) {
-  return (
-    <div
-      className={`inline-block mx-1 my-1 p-0.5 font-serif text-2xl text-gray-700 align-bottom border rounded leading-none ${className}`}
-    >
-      {children}
-    </div>
-  )
+function Word({ className, onClick, children }: PropsWithChildren<{ className?: string; onClick?: () => void }>) {
+  const cls = `inline-block mx-1 my-1 p-0.5 font-serif text-2xl align-bottom rounded leading-none ${className}`
+
+  return onClick ? <button className={cls}>{children}</button> : <div className={cls}>{children}</div>
 }
 
 function WordIlluminated({ className, children: word }: { className: string; children: string }) {
@@ -70,7 +66,7 @@ function App() {
   // const verse = bibleVulgate['Gen']['1']['22'] // B
   // const verse = bibleVulgate['Gen']['1']['21'] // C
   // const verse = bibleVulgate['Gen']['1']['3'] // D
-  const verse = bibleVulgate['Rev']['21']['19'] // E - average
+  const verse = bibleVulgate['Jde']['1']['24'] // E - average
   // const verse = bibleVulgate['Gen']['1']['16'] // F
   // const verse = bibleVulgate['Gen']['4']['20'] // G
   // const verse = bibleVulgate['Gen']['5']['1'] // H
@@ -92,7 +88,21 @@ function App() {
 
   const verseWords = verse.split(' ')
 
-  const verseWordsShuffled = shuffle([...new Set(verseWords)], { seed })
+  const punctuationRegex = /[,.;:()!?]/g
+  // 17 is the average word count per verse
+  const distanceFromIndex17 = (i: number) => abs(i - 17)
+  let punctuationIndexClosestTo17 = -1
+  for (let i = 0; i < verseWords.length; i++) {
+    if (
+      verseWords[i].match(punctuationRegex) &&
+      distanceFromIndex17(i) < distanceFromIndex17(punctuationIndexClosestTo17)
+    ) {
+      punctuationIndexClosestTo17 = i
+    }
+  }
+
+  const subverseWords = verseWords.slice(0, punctuationIndexClosestTo17 + 1 || undefined)
+  const subverseWordsShuffled = shuffle([...subverseWords], { seed })
 
   return (
     <div className="absolute w-full h-full">
@@ -100,21 +110,24 @@ function App() {
 
       <div className="absolute flex justify-center w-full h-full">
         <div className="p-1 text-justify max-w-96">
-          <WordIlluminated className="border-yellow-400">{verseWords[0]}</WordIlluminated>
-          {verseWords.slice(1).map((word, i) => (
-            <Word key={i} className="border-yellow-400">
+          <WordIlluminated className="text-gray-700 border border-yellow-400">{subverseWords[0]}</WordIlluminated>
+          {subverseWords.slice(1).map((word, i) => (
+            <Word key={i} className="text-gray-700 border border-yellow-400">
               {word}
             </Word>
           ))}
-          <Word className="px-2 font-mono text-red-500 border-red-500 shadow-inner">↩︎</Word>
+          <Word className="px-2 font-mono text-red-500 border border-red-500 shadow-inner">↩︎</Word>
         </div>
       </div>
 
-      <div className="absolute bottom-0 flex justify-center w-full bg-blue-50">
+      <div className="fixed bottom-0 flex justify-center w-full bg-yellow-400">
         <div className="p-1 text-center max-w-96">
-          {verseWordsShuffled.map((word, i) => (
-            <Word key={i} className="bg-white border-gray-700 shadow-inner">
-              {word}
+          {subverseWordsShuffled.map((word, i) => (
+            <Word
+              key={i}
+              className="px-2 py-3 text-xl text-gray-700 bg-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
+            >
+              {word.replace(punctuationRegex, '').toLowerCase()}
             </Word>
           ))}
         </div>
