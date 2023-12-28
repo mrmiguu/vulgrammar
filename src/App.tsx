@@ -92,11 +92,11 @@ function App() {
 
   const verseWords = verse.split(' ')
 
-  const verseWordsShuffled = shuffle([...verseWords], { seed })
+  const verseWordsShuffled = shuffle([...new Set(verseWords)], { seed })
 
   return (
     <div className="absolute w-full h-full">
-      <div className="absolute w-full h-full bg-yellow-50" />
+      <div className="fixed w-full h-full bg-yellow-50" />
 
       <div className="absolute flex justify-center w-full h-full">
         <div className="p-1 text-justify max-w-96">
@@ -106,6 +106,7 @@ function App() {
               {word}
             </Word>
           ))}
+          <Word className="px-2 font-mono text-red-500 border-red-500 shadow-inner">↩︎</Word>
         </div>
       </div>
 
