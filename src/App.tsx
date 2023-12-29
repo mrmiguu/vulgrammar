@@ -1,8 +1,9 @@
 import { PropsWithChildren, useMemo, useState } from 'react'
 
+import toast from 'react-hot-toast'
 import { IlluminatedLetterAssetId, useIlluminatedLetterImageAsset } from './assets.illuminatedLetters'
 import bibleVulgate from './bible.vulgate'
-import { abs, keys, pickRandom, shuffle } from './utils'
+import { abs, keys, pickRandom, shuffleWithIndex } from './utils'
 
 function Word({ className, onClick, children }: PropsWithChildren<{ className?: string; onClick?: () => void }>) {
   const cls = `inline-block mx-1 my-1 p-0.5 font-serif text-2xl align-bottom rounded leading-none ${className}`
@@ -67,12 +68,12 @@ function App() {
   )
 
   // const verse = bibleVulgate[randomBook][randomChapter][randomVerse]
-  // const verse = bibleVulgate['Gen']['1']['5'] // A
+  const verse = bibleVulgate['Gen']['1']['5'] // A
   // const verse = bibleVulgate['Gen']['8']['20'] // Æ
   // const verse = bibleVulgate['Gen']['1']['22'] // B
   // const verse = bibleVulgate['Gen']['1']['21'] // C
   // const verse = bibleVulgate['Gen']['1']['3'] // D
-  const verse = bibleVulgate['Jde']['1']['24'] // E - longest subverse
+  // const verse = bibleVulgate['Jde']['1']['24'] // E - longest subverse
   // const verse = bibleVulgate['Gen']['1']['16'] // F
   // const verse = bibleVulgate['Gen']['4']['20'] // G
   // const verse = bibleVulgate['Gen']['5']['1'] // H
@@ -110,12 +111,23 @@ function App() {
   const subverseWords = verseWords.slice(0, punctuationIndexClosestTo17 + 1 || undefined)
 
   const subverseWordsShuffled = useMemo(
-    () => shuffle([...subverseWords], { seed }),
+    () => shuffleWithIndex(subverseWords, { seed }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [seed],
   )
 
-  const [subverseWordBuffer, setSubverseWordBuffer] = useState<string[]>([subverseWords[0]])
+  const [subverseWordBuffer, setSubverseWordBuffer] = useState<[string, number][]>([[subverseWords[0], 0]])
+
+  const allWordsUsed = subverseWordBuffer.length === subverseWords.length
+
+  const onSubmit = () => {
+    const match = subverseWordBuffer.map(([word]) => word).join(' ') === subverseWords.join(' ')
+    if (match) {
+      toast(<div className="text-6xl">RIGHT 🎉</div>)
+    } else {
+      toast(<div className="text-6xl">WRONG ❌</div>)
+    }
+  }
 
   return (
     <div className="absolute w-full h-full">
@@ -126,9 +138,9 @@ function App() {
           {subverseWordBuffer.length > 0 && (
             <>
               <WordIlluminated className="text-gray-700 border border-yellow-400">
-                {subverseWordBuffer[0]}
+                {subverseWordBuffer[0][0]}
               </WordIlluminated>
-              {subverseWordBuffer.slice(1).map((word, i) => (
+              {subverseWordBuffer.slice(1).map(([word, i]) => (
                 <Word key={i} className="text-gray-700 border border-yellow-400">
                   {word}
                 </Word>
@@ -143,7 +155,7 @@ function App() {
                     }
                   }}
                 >
-                  ↩︎
+                  ✗
                 </Word>
               )}
             </>
@@ -153,17 +165,47 @@ function App() {
 
       <div className="fixed bottom-0 flex justify-center w-full bg-yellow-400">
         <div className="p-1 text-center max-w-96">
-          {subverseWordsShuffled.map((word, i) => (
+          {subverseWordsShuffled.map(([word, i]) => {
+            const isUsed = subverseWordBuffer.some(([, j]) => j === i)
+
+            return (
+              <Word
+                key={i}
+                className={`px-2 py-3 text-xl text-gray-700 bg-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+                  isUsed && 'opacity-50'
+                }`}
+                onClick={
+                  isUsed
+                    ? undefined
+                    : () => {
+                        setSubverseWordBuffer([...subverseWordBuffer, [word, i]])
+                      }
+                }
+              >
+                {word}
+              </Word>
+            )
+          })}
+
+          {allWordsUsed ? (
             <Word
-              key={i}
-              className="px-2 py-3 text-xl text-gray-700 bg-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
+              className="px-2 py-3 font-mono text-xl text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
+              onClick={onSubmit}
+            >
+              ✓
+            </Word>
+          ) : (
+            <Word
+              className="px-2 py-3 font-mono text-xl text-yellow-50 bg-gray-700 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
               onClick={() => {
-                setSubverseWordBuffer([...subverseWordBuffer, word])
+                if (subverseWordBuffer.length > 1) {
+                  setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
+                }
               }}
             >
-              {word.replace(punctuationRegex, '').toLowerCase()}
+              {subverseWordBuffer.length}/{subverseWords.length}
             </Word>
-          ))}
+          )}
         </div>
       </div>
     </div>

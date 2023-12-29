@@ -25,6 +25,13 @@ export const shuffle = <T>(list: T[], { seed }: Partial<RandomOptions> = {}): T[
   return list
 }
 
+export const shuffleWithIndex = <T>(list: T[], { seed }: Partial<RandomOptions> = {}): [T, number][] => {
+  return shuffle(
+    list.map((t, i) => [t, i]),
+    { seed },
+  )
+}
+
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export const pickRandom = <T>(list: readonly T[], { seed }: Partial<RandomOptions> = {}): T =>
