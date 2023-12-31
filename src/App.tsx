@@ -67,8 +67,8 @@ function App() {
     [randomBook, randomChapter, seed],
   )
 
-  // const verse = bibleVulgate[randomBook][randomChapter][randomVerse]
-  const verse = bibleVulgate['Gen']['1']['5'] // A
+  const verse = bibleVulgate[randomBook][randomChapter][randomVerse]
+  // const verse = bibleVulgate['Gen']['1']['5'] // A
   // const verse = bibleVulgate['Gen']['8']['20'] // Æ
   // const verse = bibleVulgate['Gen']['1']['22'] // B
   // const verse = bibleVulgate['Gen']['1']['21'] // C
