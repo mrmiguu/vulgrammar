@@ -9,3 +9,7 @@
 html {
   overscroll-behavior: none;
 }
+
+.toaster * {
+  pointer-events: none;
+}

@@ -9,6 +9,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
     <Toaster
       containerClassName="toaster font-serif"
+      position="bottom-center"
       toastOptions={{
         className: 'text-gray-700 bg-yellow-50',
       }}

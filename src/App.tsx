@@ -1,4 +1,4 @@
-import { PropsWithChildren, useMemo, useState } from 'react'
+import { PropsWithChildren, useEffect, useMemo, useState } from 'react'
 
 import toast from 'react-hot-toast'
 import { IlluminatedLetterAssetId, useIlluminatedLetterImageAsset } from './assets.illuminatedLetters'
@@ -97,7 +97,7 @@ function App() {
 
   const punctuationRegex = /[,.;:()!?]/g
   // 17 is the average word count per verse
-  const distanceFromIndex17 = (i: number) => abs(i - 17)
+  const distanceFromIndex17 = (i: number) => abs(i - 5)
   let punctuationIndexClosestTo17 = -1
   for (let i = 0; i < verseWords.length; i++) {
     if (
@@ -109,6 +109,7 @@ function App() {
   }
 
   const subverseWords = verseWords.slice(0, punctuationIndexClosestTo17 + 1 || undefined)
+  const subverse = subverseWords.join(' ')
 
   const subverseWordsShuffled = useMemo(
     () => shuffleWithIndex(subverseWords, { seed }),
@@ -116,17 +117,29 @@ function App() {
     [seed],
   )
 
-  const [subverseWordBuffer, setSubverseWordBuffer] = useState<[string, number][]>([[subverseWords[0], 0]])
+  const emptyBuffer = (): [string, number][] => [[subverseWords[0], 0]]
+
+  const [subverseWordBuffer, setSubverseWordBuffer] = useState(emptyBuffer())
+  const getSubverseBuffer = () => subverseWordBuffer.map(([word]) => word).join(' ')
+  const subverseBuffer = getSubverseBuffer()
+
+  const [lastGuess, guess] = useState<string>()
 
   const allWordsUsed = subverseWordBuffer.length === subverseWords.length
+  const guessUnchanged = lastGuess === subverseBuffer
+  const matched = lastGuess === subverse
 
-  const onSubmit = () => {
-    const match = subverseWordBuffer.map(([word]) => word).join(' ') === subverseWords.join(' ')
-    if (match) {
+  useEffect(() => {
+    if (matched) {
       toast(<div className="text-6xl">RIGHT 🎉</div>)
     } else {
       toast(<div className="text-6xl">WRONG ❌</div>)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastGuess])
+
+  const onSubmit = () => {
+    guess(getSubverseBuffer())
   }
 
   return (
@@ -146,17 +159,26 @@ function App() {
                 </Word>
               ))}
 
-              {subverseWordBuffer.length > 1 && (
-                <Word
-                  className="px-2 font-mono text-red-500 border border-red-500 shadow-inner"
-                  onClick={() => {
-                    if (subverseWordBuffer.length > 1) {
-                      setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
-                    }
-                  }}
-                >
-                  ✗
-                </Word>
+              {subverseWordBuffer.length > 1 && !matched && (
+                <>
+                  <Word
+                    className="px-2 font-mono text-red-500 border border-red-500"
+                    onClick={() => {
+                      if (subverseWordBuffer.length > 1) {
+                        setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
+                      }
+                    }}
+                  >
+                    ↩︎
+                  </Word>
+
+                  <Word
+                    className="px-2 font-mono bg-red-500 border border-red-500 text-yellow-50"
+                    onClick={() => setSubverseWordBuffer(emptyBuffer())}
+                  >
+                    ✗
+                  </Word>
+                </>
               )}
             </>
           )}
@@ -164,7 +186,7 @@ function App() {
       </div>
 
       <div className="fixed bottom-0 flex justify-center w-full bg-yellow-400">
-        <div className="p-1 text-center max-w-96">
+        <div className={`p-1 text-center max-w-96 ${matched && 'pointer-events-none'}`}>
           {subverseWordsShuffled.map(([word, i]) => {
             const isUsed = subverseWordBuffer.some(([, j]) => j === i)
 
@@ -187,7 +209,7 @@ function App() {
             )
           })}
 
-          {allWordsUsed ? (
+          {allWordsUsed && !guessUnchanged ? (
             <Word
               className="px-2 py-3 font-mono text-xl text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
               onClick={onSubmit}
@@ -195,14 +217,7 @@ function App() {
               ✓
             </Word>
           ) : (
-            <Word
-              className="px-2 py-3 font-mono text-xl text-yellow-50 bg-gray-700 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
-              onClick={() => {
-                if (subverseWordBuffer.length > 1) {
-                  setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
-                }
-              }}
-            >
+            <Word className="px-2 py-3 font-mono text-xl text-yellow-50 bg-gray-700 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]">
               {subverseWordBuffer.length}/{subverseWords.length}
             </Word>
           )}
