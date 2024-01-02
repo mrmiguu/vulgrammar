@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect, useMemo, useState } from 'react'
+import { PropsWithChildren, useMemo, useState } from 'react'
 
 import toast from 'react-hot-toast'
 import { IlluminatedLetterAssetId, useIlluminatedLetterImageAsset } from './assets.illuminatedLetters'
@@ -129,17 +129,18 @@ function App() {
   const guessUnchanged = lastGuess === subverseBuffer
   const matched = lastGuess === subverse
 
-  useEffect(() => {
+  const matchToast = (matched: boolean) => {
     if (matched) {
       toast(<div className="text-6xl">RIGHT 🎉</div>)
     } else {
       toast(<div className="text-6xl">WRONG ❌</div>)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastGuess])
+  }
 
   const onSubmit = () => {
-    guess(getSubverseBuffer())
+    const subverseBuffer = getSubverseBuffer()
+    matchToast(subverseBuffer === subverse)
+    guess(subverseBuffer)
   }
 
   return (
