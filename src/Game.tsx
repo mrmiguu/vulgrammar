@@ -136,10 +136,10 @@ function Game({ subverseLength, seed, tutorial }: GameProps) {
     setTutorialStep(0)
     toast(
       t => (
-        <span>
-          {msg}
+        <span className="flex gap-4">
+          <div className="flex items-center p-0 text-end">{msg}</div>
           <button
-            className="ml-2 px-2 py-3 text-xl animate-bounce text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
+            className="px-2 py-3 text-xl animate-bounce text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
             onClick={() => {
               toast.dismiss(t.id)
               onClick?.()
@@ -191,13 +191,13 @@ function Game({ subverseLength, seed, tutorial }: GameProps) {
   const getSubverseBuffer = () => subverseWordBuffer.map(([word]) => word).join(' ')
   const subverseBuffer = getSubverseBuffer()
 
-  const [attempts, setAttempts] = useState(0)
-  const maxAttempts = subverseWords.length - 1
+  const [guesses, setGuesses] = useState(0)
+  const maxGuesses = subverseWords.length - 1
 
   const [lastGuess, setLastGuess] = useState<string>()
   const guess = (buffer: string) => {
     setLastGuess(buffer)
-    setAttempts(attempts + 1)
+    setGuesses(guesses + 1)
   }
 
   const matchToast = (matched: boolean) => {
@@ -284,11 +284,11 @@ function Game({ subverseLength, seed, tutorial }: GameProps) {
 
           <Word
             className={`px-2 py-3 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
-              attempts === maxAttempts ? 'bg-gray-700' : 'bg-yellow-500'
+              guesses === maxGuesses ? 'bg-gray-700' : 'bg-yellow-500'
             }`}
           >
-            {`${attempts}`.padStart(`${maxAttempts}`.length, '0')}/
-            {`${maxAttempts}`.padStart(`${maxAttempts}`.length, '0')} attempts
+            {`${guesses}`.padStart(`${maxGuesses}`.length, '0')}/{`${maxGuesses}`.padStart(`${maxGuesses}`.length, '0')}{' '}
+            guesses
           </Word>
 
           <Word
@@ -319,7 +319,7 @@ function Game({ subverseLength, seed, tutorial }: GameProps) {
                 onClick={
                   isUsed
                     ? undefined
-                    : beforeOnClickToast('Add a word to your guess', () => {
+                    : beforeOnClickToast('Piece together the mystery verse above using words below', () => {
                         setSubverseWordBuffer([...subverseWordBuffer, [word, i]])
                       })
                 }
