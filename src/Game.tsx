@@ -16,7 +16,7 @@ type BibleSubverseData = [
   verse: BibleVerse,
   subverse: string,
 ]
-type BibleSubverseLength =
+export type BibleSubverseLength =
   | 2
   | 3
   | 4
@@ -119,10 +119,11 @@ function WordIlluminated({ className, children: word }: { className: string; chi
 type GameProps = {
   subverseLength: BibleSubverseLength
   seed: string
+  onComplete: (won: boolean) => void
   tutorial?: boolean
 }
 
-function Game({ subverseLength, seed, tutorial }: GameProps) {
+function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
   const [tutorialStep, setTutorialStep] = useState(tutorial ? 1 : 0)
 
   const tutorialNum = subverseLengthToTutorialNum[subverseLength]
@@ -198,20 +199,21 @@ function Game({ subverseLength, seed, tutorial }: GameProps) {
   const guess = (buffer: string) => {
     setLastGuess(buffer)
     setGuesses(guesses + 1)
+
+    const won = buffer === subverse
+    onComplete(won)
   }
 
-  const matchToast = (matched: boolean) => {
-    if (matched) {
+  const onSubmit = async () => {
+    const buffer = getSubverseBuffer()
+    guess(buffer)
+
+    const won = buffer === subverse
+    if (won) {
       toast.success(<div className="text-6xl">RIGHT</div>)
     } else {
       toast.error(<div className="text-6xl">WRONG</div>)
     }
-  }
-
-  const onSubmit = () => {
-    const subverseBuffer = getSubverseBuffer()
-    matchToast(subverseBuffer === subverse)
-    guess(subverseBuffer)
   }
 
   const allWordsUsed = subverseWordBuffer.length === subverseWords.length
