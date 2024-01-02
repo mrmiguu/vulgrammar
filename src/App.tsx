@@ -7,7 +7,7 @@ function App() {
 
   return (
     <div className="absolute w-full h-full">
-      <Game subverseLength={subverseLength} seed={seed} />
+      <Game subverseLength={subverseLength} seed={seed} tutorial />
     </div>
   )
 }

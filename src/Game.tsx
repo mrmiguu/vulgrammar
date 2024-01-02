@@ -16,6 +16,34 @@ type BibleSubverseData = [
   verse: BibleVerse,
   subverse: string,
 ]
+type BibleSubverseLength =
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 11
+  | 12
+  | 13
+  | 14
+  | 15
+  | 16
+  | 17
+  | 18
+  | 19
+  | 20
+  | 21
+  | 22
+  | 23
+  | 24
+
+const subverseLengthToTutorialNum: { [n in BibleSubverseLength]?: number } = {
+  2: 1,
+}
 
 const getSubversesOfLength_cache: Record<number, BibleSubverseData[]> = {}
 const getSubversesOfLength = (n: number): BibleSubverseData[] => {
@@ -65,38 +93,67 @@ function WordIlluminated({ className, children: word }: { className: string; chi
   const letterToIlluminate = word.replace(/\(/g, '')[0].toUpperCase() as IlluminatedLetterAssetId
   const illuminatedLetterImage = useIlluminatedLetterImageAsset(letterToIlluminate)
 
-  return illuminatedLetterImage ? (
+  return (
     <>
       <Word className={`float-left ${className}`}>
         <canvas
-          className="inline-block h-[138px]"
+          className={`inline-block bg-yellow-400 w-[138px] h-[138px] ${!illuminatedLetterImage && 'animate-pulse'}`}
           ref={canvas => {
-            if (illuminatedLetterImage) {
-              if (canvas) {
-                canvas.width = illuminatedLetterImage.naturalWidth
-                canvas.height = illuminatedLetterImage.naturalHeight
-                const ctx = canvas.getContext('2d')
-                if (ctx) {
-                  ctx.drawImage(illuminatedLetterImage, 0, 0)
-                }
-              }
-            }
+            if (!illuminatedLetterImage) return
+            if (!canvas) return
+
+            canvas.width = illuminatedLetterImage.naturalWidth
+            canvas.height = illuminatedLetterImage.naturalHeight
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+
+            ctx.drawImage(illuminatedLetterImage, 0, 0)
           }}
         />
       </Word>
       <Word className={className}>{!word.startsWith('(') ? word.slice(1) : word.slice(2)}</Word>
     </>
-  ) : (
-    <Word className={className}>{word}</Word>
   )
 }
 
 type GameProps = {
-  subverseLength: number
+  subverseLength: BibleSubverseLength
   seed: string
+  tutorial?: boolean
 }
 
-function Game({ subverseLength, seed }: GameProps) {
+function Game({ subverseLength, seed, tutorial }: GameProps) {
+  const [tutorialStep, setTutorialStep] = useState(tutorial ? 1 : 0)
+
+  const tutorialNum = subverseLengthToTutorialNum[subverseLength]
+
+  const beforeOnClickToast = (msg: string, onClick?: () => void) => () => {
+    if (!tutorial || !tutorialNum) {
+      onClick?.()
+      return
+    }
+
+    setTutorialStep(0)
+    toast(
+      t => (
+        <span>
+          {msg}
+          <button
+            className="ml-2 px-2 py-3 text-xl animate-bounce text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
+            onClick={() => {
+              toast.dismiss(t.id)
+              onClick?.()
+              setTutorialStep(tutorialStep + 1)
+            }}
+          >
+            ✓
+          </button>
+        </span>
+      ),
+      { duration: Infinity },
+    )
+  }
+
   const bibleSubverses = getSubversesOfLength(subverseLength)
   const [, , , , subverse] = useMemo(() => pickRandom(bibleSubverses, { seed }), [bibleSubverses, seed])
 
@@ -134,17 +191,20 @@ function Game({ subverseLength, seed }: GameProps) {
   const getSubverseBuffer = () => subverseWordBuffer.map(([word]) => word).join(' ')
   const subverseBuffer = getSubverseBuffer()
 
-  const [lastGuess, guess] = useState<string>()
+  const [attempts, setAttempts] = useState(0)
+  const maxAttempts = subverseWords.length - 1
 
-  const allWordsUsed = subverseWordBuffer.length === subverseWords.length
-  const guessUnchanged = lastGuess === subverseBuffer
-  const matched = lastGuess === subverse
+  const [lastGuess, setLastGuess] = useState<string>()
+  const guess = (buffer: string) => {
+    setLastGuess(buffer)
+    setAttempts(attempts + 1)
+  }
 
   const matchToast = (matched: boolean) => {
     if (matched) {
-      toast(<div className="text-6xl">RIGHT 🎉</div>)
+      toast.success(<div className="text-6xl">RIGHT</div>)
     } else {
-      toast(<div className="text-6xl">WRONG ❌</div>)
+      toast.error(<div className="text-6xl">WRONG</div>)
     }
   }
 
@@ -153,6 +213,12 @@ function Game({ subverseLength, seed }: GameProps) {
     matchToast(subverseBuffer === subverse)
     guess(subverseBuffer)
   }
+
+  const allWordsUsed = subverseWordBuffer.length === subverseWords.length
+  const guessUnchanged = lastGuess === subverseBuffer
+  const matched = lastGuess === subverse
+
+  const readyToSubmit = allWordsUsed && !guessUnchanged
 
   return (
     <div className="absolute w-full h-full">
@@ -171,25 +237,33 @@ function Game({ subverseLength, seed }: GameProps) {
                 </Word>
               ))}
 
-              {subverseWordBuffer.length > 1 && !matched && (
+              {!matched && subverseWordBuffer.length > 1 && (
                 <>
                   <Word
-                    className="px-2 font-mono text-red-500 border border-red-500"
-                    onClick={() => {
-                      if (subverseWordBuffer.length > 1) {
-                        setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
-                      }
-                    }}
+                    className={`px-2 text-red-500 border border-red-500 ${
+                      tutorialNum === 1 && tutorialStep === 2 && 'animate-bounce'
+                    }`}
+                    onClick={
+                      tutorialNum === 1 && tutorialStep === 2
+                        ? beforeOnClickToast('Undo (↩︎) removes a word')
+                        : () => {
+                            if (subverseWordBuffer.length > 1) {
+                              setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
+                            }
+                          }
+                    }
                   >
                     ↩︎
                   </Word>
 
-                  <Word
-                    className="px-2 font-mono bg-red-500 border border-red-500 text-yellow-50"
-                    onClick={() => setSubverseWordBuffer(emptyBuffer())}
-                  >
-                    ✗
-                  </Word>
+                  {subverseWordBuffer.length > 2 && (
+                    <Word
+                      className="px-2 bg-red-500 border border-red-500 text-yellow-50"
+                      onClick={() => setSubverseWordBuffer(emptyBuffer())}
+                    >
+                      ✗
+                    </Word>
+                  )}
                 </>
               )}
             </>
@@ -199,40 +273,61 @@ function Game({ subverseLength, seed }: GameProps) {
 
       <div className="fixed bottom-0 flex justify-center w-full bg-yellow-400">
         <div className={`p-1 text-center max-w-96 ${matched && 'pointer-events-none'}`}>
+          <Word
+            className={`px-2 py-3 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+              allWordsUsed ? 'bg-gray-700' : 'bg-yellow-500'
+            }`}
+          >
+            {`${subverseWordBuffer.length}`.padStart(`${subverseWords.length}`.length, '0')}/
+            {`${subverseWords.length}`.padStart(`${subverseWords.length}`.length, '0')} words
+          </Word>
+
+          <Word
+            className={`px-2 py-3 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+              attempts === maxAttempts ? 'bg-gray-700' : 'bg-yellow-500'
+            }`}
+          >
+            {`${attempts}`.padStart(`${maxAttempts}`.length, '0')}/
+            {`${maxAttempts}`.padStart(`${maxAttempts}`.length, '0')} attempts
+          </Word>
+
+          <Word
+            className={`px-2 py-3 text-xl text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+              tutorialNum === 1 && tutorialStep === 3 && 'animate-bounce'
+            } ${!readyToSubmit && 'opacity-50'}`}
+            onClick={
+              readyToSubmit
+                ? tutorialNum === 1 && tutorialStep === 3
+                  ? beforeOnClickToast('Submit (✓) checks your guess', onSubmit)
+                  : onSubmit
+                : undefined
+            }
+          >
+            ✓
+          </Word>
+
           {subverseWordsShuffled.map(([word, i]) => {
             const isUsed = subverseWordBuffer.some(([, j]) => j === i)
+            const tutorialize = tutorialNum === 1 && tutorialStep === 1 && !isUsed
 
             return (
               <Word
                 key={i}
                 className={`px-2 py-3 text-xl text-gray-700 bg-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
                   isUsed && 'opacity-50'
-                }`}
+                } ${tutorialize && 'animate-bounce'}`}
                 onClick={
                   isUsed
                     ? undefined
-                    : () => {
+                    : beforeOnClickToast('Add a word to your guess', () => {
                         setSubverseWordBuffer([...subverseWordBuffer, [word, i]])
-                      }
+                      })
                 }
               >
                 {word}
               </Word>
             )
           })}
-
-          {allWordsUsed && !guessUnchanged ? (
-            <Word
-              className="px-2 py-3 font-mono text-xl text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
-              onClick={onSubmit}
-            >
-              ✓
-            </Word>
-          ) : (
-            <Word className="px-2 py-3 font-mono text-xl text-yellow-50 bg-gray-700 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]">
-              {subverseWordBuffer.length}/{subverseWords.length}
-            </Word>
-          )}
         </div>
       </div>
     </div>
