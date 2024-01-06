@@ -15,7 +15,7 @@ function App() {
         onComplete={won => {
           if (won) setSubverseLength((subverseLength + 1) as BibleSubverseLength)
         }}
-        tutorial
+        tutorial={subverseLength === 2}
       />
     </div>
   )
