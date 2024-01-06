@@ -116,6 +116,35 @@ function WordIlluminated({ className, children: word }: { className: string; chi
   )
 }
 
+type InteractiveToastOptions = Partial<{
+  className: string
+  closeStyle: '✓' | '✗'
+}>
+
+const interactiveToast = (text: string, { className, closeStyle = '✓' }: InteractiveToastOptions = {}) => {
+  return new Promise<void>(resolve => {
+    toast(
+      t => (
+        <span className="flex gap-4">
+          <div className={`flex items-center p-0 text-end ${className}`}>{text}</div>
+          <button
+            className={`px-2 py-3 w-8 text-xl animate-bounce text-yellow-50 ${
+              closeStyle === '✗' ? 'bg-red-500' : 'bg-green-500'
+            } rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]`}
+            onClick={() => {
+              toast.dismiss(t.id)
+              resolve()
+            }}
+          >
+            {closeStyle}
+          </button>
+        </span>
+      ),
+      { duration: Infinity },
+    )
+  })
+}
+
 type GameProps = {
   subverseLength: BibleSubverseLength
   seed: string
@@ -128,31 +157,16 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
 
   const tutorialNum = subverseLengthToTutorialNum[subverseLength]
 
-  const beforeOnClickToast = (msg: string, onClick?: () => void) => () => {
+  const beforeOnClickToast = (msg: string, onClick?: () => void) => async () => {
     if (!tutorial || !tutorialNum) {
       onClick?.()
       return
     }
 
     setTutorialStep(0)
-    toast(
-      t => (
-        <span className="flex gap-4">
-          <div className="flex items-center p-0 text-end">{msg}</div>
-          <button
-            className="px-2 py-3 text-xl animate-bounce text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]"
-            onClick={() => {
-              toast.dismiss(t.id)
-              onClick?.()
-              setTutorialStep(tutorialStep + 1)
-            }}
-          >
-            ✓
-          </button>
-        </span>
-      ),
-      { duration: Infinity },
-    )
+    await interactiveToast(msg)
+    onClick?.()
+    setTutorialStep(tutorialStep + 1)
   }
 
   const bibleSubverses = getSubversesOfLength(subverseLength)
@@ -206,14 +220,15 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
 
   const onSubmit = async () => {
     const buffer = getSubverseBuffer()
-    guess(buffer)
 
     const won = buffer === subverse
     if (won) {
-      toast.success(<div className="text-6xl">RIGHT</div>)
+      await interactiveToast('RIGHT', { className: 'text-6xl' })
     } else {
-      toast.error(<div className="text-6xl">WRONG</div>)
+      await interactiveToast('WRONG', { className: 'text-6xl', closeStyle: '✗' })
     }
+
+    guess(buffer)
   }
 
   const allWordsUsed = subverseWordBuffer.length === subverseWords.length
