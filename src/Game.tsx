@@ -78,7 +78,7 @@ const getSubversesOfLength = (n: number): BibleSubverseData[] => {
 }
 
 function Word({ className, onClick, children }: PropsWithChildren<{ className?: string; onClick?: () => void }>) {
-  const cls = `inline-block mx-1 my-1 p-0.5 font-serif text-2xl align-bottom rounded leading-none ${className}`
+  const cls = `inline-block mx-1 my-1 p-0.5 text-2xl align-bottom rounded leading-none ${className}`
 
   return onClick ? (
     <button className={cls} onClick={onClick}>
@@ -238,7 +238,7 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
   const readyToSubmit = allWordsUsed && !guessUnchanged
 
   return (
-    <div className="absolute w-full h-full">
+    <div className="absolute w-full h-full font-serif">
       <div className="fixed w-full h-full bg-yellow-50" />
 
       <div className="absolute flex justify-center w-full h-full">
@@ -291,20 +291,26 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
       <div className="fixed bottom-0 flex justify-center w-full bg-yellow-400">
         <div className={`p-1 text-center max-w-96 ${matched && 'pointer-events-none'}`}>
           <Word
-            className={`px-2 py-3 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+            className={`px-2 py-3 h-11 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
               allWordsUsed ? 'bg-gray-700' : 'bg-yellow-500'
             }`}
           >
-            {`${subverseWordBuffer.length}`.padStart(`${subverseWords.length}`.length, '0')}/
-            {`${subverseWords.length}`.padStart(`${subverseWords.length}`.length, '0')} words
+            <span className="font-mono text-base">
+              {`${subverseWordBuffer.length}`.padStart(`${subverseWords.length}`.length, '0')}/
+              {`${subverseWords.length}`.padStart(`${subverseWords.length}`.length, '0')}
+            </span>{' '}
+            words
           </Word>
 
           <Word
-            className={`px-2 py-3 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+            className={`px-2 py-3 h-11 text-xl text-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
               guesses === maxGuesses ? 'bg-gray-700' : 'bg-yellow-500'
             }`}
           >
-            {`${guesses}`.padStart(`${maxGuesses}`.length, '0')}/{`${maxGuesses}`.padStart(`${maxGuesses}`.length, '0')}{' '}
+            <span className="font-mono text-base">
+              {`${guesses}`.padStart(`${maxGuesses}`.length, '0')}/
+              {`${maxGuesses}`.padStart(`${maxGuesses}`.length, '0')}{' '}
+            </span>
             guesses
           </Word>
 
@@ -336,7 +342,7 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
                 onClick={
                   isUsed
                     ? undefined
-                    : beforeOnClickToast('Piece together the mystery verse above using words below', () => {
+                    : beforeOnClickToast('Piece together the mystery bible verse above using latin words below', () => {
                         setSubverseWordBuffer([...subverseWordBuffer, [word, i]])
                       })
                 }
