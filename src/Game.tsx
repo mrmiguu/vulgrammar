@@ -1,8 +1,9 @@
 import { PropsWithChildren, useMemo, useState } from 'react'
 
-import toast from 'react-hot-toast'
+import { TutorialStep } from './Tutorial'
 import { IlluminatedLetterAssetId, useIlluminatedLetterImageAsset } from './assets.illuminatedLetters'
 import bibleVulgate from './bible.vulgate'
+import interactiveToast from './toasts'
 import { pickRandom, shuffleWithIndex } from './utils'
 
 type BibleBook = keyof typeof bibleVulgate
@@ -40,10 +41,6 @@ export type BibleSubverseLength =
   | 22
   | 23
   | 24
-
-const subverseLengthToTutorialNum: { [n in BibleSubverseLength]?: number } = {
-  2: 1,
-}
 
 const getSubversesOfLength_cache: Record<number, BibleSubverseData[]> = {}
 const getSubversesOfLength = (n: number): BibleSubverseData[] => {
@@ -116,35 +113,6 @@ function WordIlluminated({ className, children: word }: { className: string; chi
   )
 }
 
-type InteractiveToastOptions = Partial<{
-  className: string
-  closeStyle: '✓' | '✗'
-}>
-
-const interactiveToast = (text: string, { className, closeStyle = '✓' }: InteractiveToastOptions = {}) => {
-  return new Promise<void>(resolve => {
-    toast(
-      t => (
-        <span className="flex gap-4">
-          <div className={`flex items-center p-0 text-end ${className}`}>{text}</div>
-          <button
-            className={`px-2 py-3 w-8 text-xl animate-bounce text-yellow-50 ${
-              closeStyle === '✗' ? 'bg-red-500' : 'bg-green-500'
-            } rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)]`}
-            onClick={() => {
-              toast.dismiss(t.id)
-              resolve()
-            }}
-          >
-            {closeStyle}
-          </button>
-        </span>
-      ),
-      { duration: Infinity },
-    )
-  })
-}
-
 type GameProps = {
   subverseLength: BibleSubverseLength
   seed: string
@@ -153,22 +121,6 @@ type GameProps = {
 }
 
 function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
-  const [tutorialStep, setTutorialStep] = useState(tutorial ? 1 : 0)
-
-  const tutorialNum = subverseLengthToTutorialNum[subverseLength]
-
-  const beforeOnClickToast = (msg: string, onClick?: () => void) => async () => {
-    if (!tutorial || !tutorialNum) {
-      onClick?.()
-      return
-    }
-
-    setTutorialStep(0)
-    await interactiveToast(msg)
-    onClick?.()
-    setTutorialStep(tutorialStep + 1)
-  }
-
   const bibleSubverses = getSubversesOfLength(subverseLength)
   const [, , , , subverse] = useMemo(() => pickRandom(bibleSubverses, { seed }), [bibleSubverses, seed])
 
@@ -256,22 +208,18 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
 
               {!matched && subverseWordBuffer.length > 1 && (
                 <>
-                  <Word
-                    className={`px-2 text-red-500 border border-red-500 ${
-                      tutorialNum === 1 && tutorialStep === 2 && 'animate-bounce'
-                    }`}
-                    onClick={
-                      tutorialNum === 1 && tutorialStep === 2
-                        ? beforeOnClickToast('Undo (↩︎) removes a word')
-                        : () => {
-                            if (subverseWordBuffer.length > 1) {
-                              setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
-                            }
-                          }
-                    }
-                  >
-                    ↩︎
-                  </Word>
+                  <TutorialStep num={1} step={2} text="Undo (↩︎) removes a word">
+                    <Word
+                      className="px-2 text-red-500 border border-red-500"
+                      onClick={() => {
+                        if (subverseWordBuffer.length > 1) {
+                          setSubverseWordBuffer(subverseWordBuffer.slice(0, -1))
+                        }
+                      }}
+                    >
+                      ↩︎
+                    </Word>
+                  </TutorialStep>
 
                   {subverseWordBuffer.length > 2 && (
                     <Word
@@ -314,41 +262,49 @@ function Game({ subverseLength, seed, onComplete, tutorial }: GameProps) {
             guesses
           </Word>
 
-          <Word
-            className={`px-2 py-3 text-xl text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
-              tutorialNum === 1 && tutorialStep === 3 && 'animate-bounce'
-            } ${!readyToSubmit && 'opacity-50'}`}
-            onClick={
-              readyToSubmit
-                ? tutorialNum === 1 && tutorialStep === 3
-                  ? beforeOnClickToast('Submit (✓) checks your guess', onSubmit)
-                  : onSubmit
-                : undefined
-            }
-          >
-            ✓
-          </Word>
+          <TutorialStep num={1} step={3} text="Submit (✓) checks your guess">
+            <Word
+              className={`px-2 py-3 text-xl text-yellow-50 bg-green-500 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
+                !readyToSubmit && 'opacity-50'
+              }`}
+              onClick={readyToSubmit ? onSubmit : undefined}
+            >
+              ✓
+            </Word>
+          </TutorialStep>
 
           {subverseWordsShuffled.map(([word, i]) => {
             const isUsed = subverseWordBuffer.some(([, j]) => j === i)
-            const tutorialize = tutorialNum === 1 && tutorialStep === 1 && !isUsed
 
-            return (
+            const wordEl = (
               <Word
                 key={i}
                 className={`px-2 py-3 text-xl text-gray-700 bg-yellow-50 rounded-md shadow-[0_1px_1px_0_rgba(0,0,0,0.4)] ${
                   isUsed && 'opacity-50'
-                } ${tutorialize && 'animate-bounce'}`}
+                }`}
                 onClick={
                   isUsed
                     ? undefined
-                    : beforeOnClickToast('Piece together the mystery bible verse above using latin words below', () => {
+                    : () => {
                         setSubverseWordBuffer([...subverseWordBuffer, [word, i]])
-                      })
+                      }
                 }
               >
                 {word}
               </Word>
+            )
+
+            return tutorial && !isUsed ? (
+              <TutorialStep
+                key={i}
+                num={1}
+                step={1}
+                text="Piece together the mystery bible verse above using latin words below"
+              >
+                {wordEl}
+              </TutorialStep>
+            ) : (
+              wordEl
             )
           })}
         </div>
