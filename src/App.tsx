@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import Game, { BibleSubverseLength } from './Game'
 import { Tutorial } from './Tutorial'
+import { nowDay } from './utils'
 
 function App() {
   // const seed = useMemo(() => String(random()), [])
-  const seed = '0.12345678'
+  const seed = `${nowDay()}`
   const [subverseLength, setSubverseLength] = useState<BibleSubverseLength>(2)
 
   return (
     <div className="absolute w-full h-full">
-      <Tutorial>
+      <Tutorial
+        key={subverseLength} // TODO: a hacky way to force a re-render; fix this.
+      >
         <Game
           key={subverseLength} // TODO: a hacky way to force a re-render; fix this.
           subverseLength={subverseLength}

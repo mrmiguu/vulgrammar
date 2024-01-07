@@ -2,7 +2,7 @@ import seedrandom from 'seedrandom'
 
 export const { log, warn, error } = console
 export const { stringify, parse } = JSON
-export const { min, max, ceil, abs, pow, sqrt, sin, cos, tan, atan, atan2, PI } = Math
+export const { min, max, floor, ceil, abs, pow, sqrt, sin, cos, tan, atan, atan2, PI } = Math
 export const { keys, values, entries } = Object
 
 type RandomOptions = {
@@ -44,3 +44,5 @@ export const urlSearchParams = () =>
   )
 
 export const coordinatedUniversalMilliseconds = () => Date.now()
+
+export const nowDay = () => floor(Date.now() / (1000 * 60 * 60 * 24))
